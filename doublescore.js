@@ -28,7 +28,7 @@
 		}
 
 		for (var i = 0; i < array.length; i++) {
-			callable.call(array[i]);
+			callable.apply(array[i]);
 		}
 	};
 	
@@ -54,8 +54,8 @@
 		if (typeof entity == 'string') {
 			result = [];
 			
-			for (var i = 0; i < entitiy.length; i++) {
-				result.push(entitiy[i]);
+			for (var i = 0; i < entity.length; i++) {
+				result.push(entity[i]);
 			}
 			
 			return result;
@@ -84,7 +84,7 @@
 	
 	__.stop = {}; // Token to represent exhausted iterator
 	__.emptyIterator = {next: function(){ return __.stop }};
-	__.iterator = function(start, pattern, conclusion) {
+	__.iterator = function(start, pattern, satisfied) {
 		/*
 		 * Constructs an iterator.
 		 * 
@@ -95,7 +95,7 @@
 				console.log(c);
 			};
 		 */
-		conclusion = conclusion || function() { return false; }
+		satisfied = satisfied || function() { return false; }
 		
 		var iter = {};
 		var current = start;
@@ -114,8 +114,9 @@
 
 			current = pattern(current);
 
-			if (conclusion(current)) {
+			if (satisfied(current)) {
 				stopped = true;
+				return __.stop;
 			}
 			
 			return current;
@@ -188,7 +189,7 @@
 		var iter = __.iterable(iterable);
 		
 		for (; i < iter.length; i++) {
-			if (!predicate(iter[i])) {
+			if (!predicate.apply(iter[i])) {
 				break;
 			}
 		}
@@ -202,6 +203,10 @@
 		return result;
 	};
 	
+	__.idropwhile = function(predicate, iterable) {
+		
+	};
+	
 	__.groupby = function(iterable, key) {
 	
 	};
@@ -212,11 +217,13 @@
 		predicate = predicate || __.truthy;
 		
 		if (!iter) {
-			return {next: function(){ return __.stop }};
+			return __.emptyIterator;
 		}
 		
-		for (var i = 0; i < iter.length; i++) {
-			if (predicate(iter[i])) {
+		var i = 0;
+		
+		for (; i < iter.length; i++) {
+			if (predicate.apply(iter[i])) {
 				break;
 			}
 		}
@@ -226,19 +233,48 @@
 		}
 		
 		return __.iterator(iter[i], function(c) {
-			for (; i < iter.length; ++i) {
-				if (predicate(iter[i])) {
+			i++;
+			for (; i < iter.length; i++) {
+				if (predicate.apply(iter[i])) {
 					break;
 				}
 			}
 			return iter[i];
 		}, function(c) {
 			return typeof c == 'undefined';
-		})
+		});
 	};
 	
 	__.ifilterfalse = function(predicate, iterable) {
+		var iter = __.iterable(iterable);
+
+		predicate = predicate || __.truthy;
 		
+		if (!iter) {
+			return __.emptyIterator;
+		}
+		
+		for (var i = 0; i < iter.length; i++) {
+			if (!predicate.apply(iter[i])) {
+				break;
+			}
+		}
+		
+		if (typeof iter[i] == 'undefined') {
+			return __.emptyIterator;
+		}
+		
+		return __.iterator(iter[i], function(c) {
+			i++;
+			for (; i < iter.length; i++) {
+				if (!predicate.apply(iter[i])) {
+					break;
+				}
+			}
+			return iter[i];
+		}, function(c) {
+			return typeof c == 'undefined';
+		});
 	};
 	
 	__.imap = function() {
@@ -249,8 +285,21 @@
 		
 	};
 	
-	__.izip = function() {
+	__.izip = function(one, two) {
+		var result = [];
 		
+		if (one.length != two.length) {
+			throw new Error('Arrays are not the same length in call to __.zip');
+		}
+		
+		var index = 0;
+		
+		return __.iterator([one[index], two[index]], function() {
+			index++;
+			return [one[index], two[index]];
+		}, function(c) {
+			return typeof c[0] == 'undefined' || typeof c[1] == 'undefined'; 
+		});
 	};
 	
 	__.nth = function(iterable, index, __default) {
@@ -271,22 +320,77 @@
 		}
 		
 		var count = 0;
+		
 		return __.iterator(entity, function() { return entity; }, function() {
 			count++;
-			return count > times;
+			return count >= times;
 		});
 	};
 	
-	__.starmap = function(iterable, callable) {
+	__.starmap = function(callable, iterable) {
+		var result = [];
+		var iter = __.iterable(iterable);
 		
+		for (var i = 0; i < iter.length; i++) {
+			result.push(callable.apply(null, __.iterable(iter[i])));
+		}
+		
+		return result;
 	};
 	
 	__.takewhile = function(predicate, iterable) {
+		var iter = __.iterable(iterable);
+		var result = [];
 		
+		for (var i = 0; i < iter.length; i++) {
+			if (predicate.apply(iter[i])) {
+				result.push(iter[i]);
+			}
+			else {
+				break;
+			}
+		}
+		
+		return result;
+	};
+	
+	__.itakewhile = function(predicate, iterable) {
+		var iter = __.iterable(iterable);
+
+		if (!iter) {
+			return __.emptyIterator;
+		}
+		
+		var index = 0;
+		
+		return __.iter(iter[index], function(c) {
+			index++;
+			return iter[index]
+		}, function(c) {
+			return !predicate.apply(c);
+		});
 	};
 	
 	__.tee = function(iterable, num) {
 		num = num || 2;
+		
+		var result = [];
+		var iter = __.iterable(iterable);
+		
+		for (var i = 0; i < num; i++) {
+			var newIter = function() {
+				var index = 0;
+				return __.iterator(iterable[0], function() {
+					index++;
+					return iterable[index];
+				}, function(c) {
+					return typeof c == 'undefined';
+				})
+			};
+			result.push(newIter());
+		}
+		
+		return result;
 	};
 	
 	__.zip = function(one, two) {
@@ -307,8 +411,18 @@
 	 * Functools 
 	 ***************/
 	
+	__.partial = __.curry = function(func) {
+		var args = Array.prototype.slice.apply(arguments, [1]);
+		return function() {
+			func.apply(null, args.concat(Array.prototype.slice.apply(arguments)));
+		};
+	};
+	
 	__.reduce = function (callable, iterable, initializer) {
 		
 	};
 	
+	__.wraps = function() {
+		
+	};
 })();

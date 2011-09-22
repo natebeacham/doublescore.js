@@ -1,0 +1,66 @@
+<html>
+	<head>
+		<script src="doublescore.js"></script>
+		
+		<script>
+			function logResult(name, result) {
+				console.log(name);
+				if (typeof result == 'undefined') {
+					console.log('Not implemented yet...');
+				}
+				else {
+					console.log(result);
+				}
+				console.log(' ');
+			};
+			
+			function ilogResult(name, result, times) {
+				times = times || 10;
+				console.log(name);
+				if (typeof result == 'undefined') {
+					console.log('Not implemented yet...');
+				}
+				else {
+					var itered = [];
+					var count = 0;
+					while ((c = result.next()) != __.stop) {
+						itered.push(c);
+						count++;
+						if (count >= times) {
+							break;
+						}
+					};
+					console.log(itered.join(' '));
+				}
+				console.log(' ');
+			};
+
+			logResult('chain', __.chain('ABC', 'DEF').join(' '));
+			logResult('combinations');
+			logResult('compress', __.compress('ABCDEF', [1, 0, 1, 0, 1, 1]).join(' '));
+			ilogResult('count', __.count(0));
+			ilogResult('cycle (string)', __.cycle('ABC'));
+			ilogResult('cycle (array)', __.cycle([1, 2, 3]));
+			logResult('dropwhile', __.dropwhile(function() {return this < 5; }, [1,2,3,4,5,6,7,8,9,10]).join(' '));
+			ilogResult('idropwhile');
+			logResult('groupby');
+			ilogResult('ifilter', __.ifilter(function() { return this > 5; }, [1,2,3,4,5,6,7,8,9]));
+			ilogResult('ifilterfalse', __.ifilterfalse(function() { return this > 5; }, [1,2,3,4,5,6,7,8,9]));
+			ilogResult('imap');
+			ilogResult('islice');
+			ilogResult('izip', __.izip([1,2,3], [7,8,9]));
+			logResult('permutations');
+			logResult('product');
+			ilogResult('repeat', __.repeat('Hello, world!', 3));
+			logResult('starmap', __.starmap(function(a, b) { return a * b; }, [[1,2], [2,3], [3,4]]).join(' '));
+			logResult('takewhile', __.takewhile(function() { return this < 5; }, [1,2,3,4,5,6,7,8]).join(' '));
+			
+			var tee = __.tee([1,2,3], 3);
+			
+			for (var i = 0; i < tee.length; i++) {
+				ilogResult('tee #' + (i + 1), tee[i]);
+			}
+			
+		</script>
+	</head>
+</html>
