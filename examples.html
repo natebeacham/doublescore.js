@@ -36,21 +36,26 @@
 			};
 
 			logResult('chain', __.chain('ABC', 'DEF').join(' '));
-			logResult('combinations');
+			ilogResult('combinations', __.combinations('ABCD', 2));
 			logResult('compress', __.compress('ABCDEF', [1, 0, 1, 0, 1, 1]).join(' '));
 			ilogResult('count', __.count(0));
 			ilogResult('cycle (string)', __.cycle('ABC'));
 			ilogResult('cycle (array)', __.cycle([1, 2, 3]));
 			logResult('dropwhile', __.dropwhile(function() {return this < 5; }, [1,2,3,4,5,6,7,8,9,10]).join(' '));
-			ilogResult('idropwhile');
+			ilogResult('idropwhile', __.idropwhile(function() {return this < 5; }, [1,2,3,4,5,6,7,8,9,10]));
 			logResult('groupby');
 			ilogResult('ifilter', __.ifilter(function() { return this > 5; }, [1,2,3,4,5,6,7,8,9]));
 			ilogResult('ifilterfalse', __.ifilterfalse(function() { return this > 5; }, [1,2,3,4,5,6,7,8,9]));
-			ilogResult('imap');
-			ilogResult('islice');
+			ilogResult('imap', __.imap(Math.pow, [2, 3, 10], [5, 2, 3]));
+			ilogResult('islice', __.islice('ABCDEFG', null, 2));
+			ilogResult('islice', __.islice('ABCDEFG', 2, 4));
+			ilogResult('islice', __.islice('ABCDEFG', 2, null));
+			ilogResult('islice', __.islice('ABCDEFG', 0, null, 2));
 			ilogResult('izip', __.izip([1,2,3], [7,8,9]));
-			logResult('permutations');
-			logResult('product');
+			logResult('permutations', __.permutations('ABCD', 2));
+			logResult('permutations', __.permutations([0, 1, 2]));
+			logResult('product', __.product('ABCD', 'xy'));
+			logResult('product', __.product([0,1], 3));
 			ilogResult('repeat', __.repeat('Hello, world!', 3));
 			logResult('starmap', __.starmap(function(a, b) { return a * b; }, [[1,2], [2,3], [3,4]]).join(' '));
 			logResult('takewhile', __.takewhile(function() { return this < 5; }, [1,2,3,4,5,6,7,8]).join(' '));
@@ -61,6 +66,17 @@
 				ilogResult('tee #' + (i + 1), tee[i]);
 			}
 			
+			logResult('reduce', __.reduce(function(a, b) { return a + b; }, [1,2,3]));
+			
+			var add = function(a, b) {
+				return a + b;
+			};
+			
+			var addToOne = __.partial(add, 1);
+			
+			logResult('partial (curry)', addToOne(2));
+			logResult('partial.func', addToOne.func);
+			logResult('partial.args', addToOne.args);
 		</script>
 	</head>
 </html>

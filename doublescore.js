@@ -4,7 +4,7 @@
  * nate beacham, 2011
  * http://natebeacham.com
  * License: MIT
- * Version: 0.1
+ * Version: 0.1 
  ***********************************************************/
 (function() {
 	var __version = '0.1'
@@ -21,16 +21,6 @@
 	/****************
 	 * Helpers 
 	 ***************/
-	
-	__.each = function(array, callable) {
-		if (Array.prototype.forEach) {
-			array.forEach(callable);
-		}
-
-		for (var i = 0; i < array.length; i++) {
-			callable.apply(array[i]);
-		}
-	};
 	
 	__.truthy = function(entity) {
 		if (typeof entity == 'object') {
@@ -64,16 +54,67 @@
 		return [entity];
 	};
 	
-	/****************
-	 * Functions 
-	 ***************/
+	__.range = function(min, max) {
+		var result = [];
+		
+		for (var i = min; i < max; i++) {
+			result.push(i);
+		}
+		
+		return result;
+	};
 	
-	__.fromkeys = function(keys, __default) {
-		var result = {};
+	__.reverse = function(iterable) {
+		var result = [];
+		
+		for (var i = iterable.length - 1; i >= 0; i--) {
+			result.push(iterable[i]);
+		}
+		
+		return result;
+	};
 
-		forEach(keys, function(key) {
-			result[key] = __default;
-		});
+	__.set = function(iterable) {
+		var iter = __.iterable(iterable);
+		var result = [];
+		var flag;
+
+		for (var i = 0; i < iter.length; i++) {
+			flag = true;
+			for (var j = 0; j < result.length; j++) {
+				if (iter[i] == result[j]) {
+					flag = false;
+					break;
+				}
+			}
+			if (flag) {
+				result.push(iter[i]);
+			}
+		}
+		
+		return result;
+	};
+	
+	__.smallest = function() {
+		var result = arguments[0];
+		
+		for (var i = 1 ; i < arguments.length; i++) {
+			if (arguments[i].length < result.length) {
+				result = arguments[i];
+			}
+		}
+		
+		return result;
+	};
+	
+	__.largest = function() {
+		var result = arguments[0];
+		
+		for (var i = 1 ; i < arguments.length; i++) {
+			if (arguments[i].length > result.length) {
+				result = arguments[i];
+			}
+		}
 		
 		return result;
 	};
@@ -140,7 +181,59 @@
 	};
 	
 	__.combinations = function(iterable, num) {
+
+		// FIXME!
+
+		var iter = __.iterable(iterable);
+		var len = iter.length;
 		
+		if (num > len) {
+			return __.emptyIterator;
+		}
+		
+		var indices = __.range(0, num);
+		var start = [];
+		
+		for (var i = 0; i < indices.length; i++) {
+			start.push(iter[i]);
+		}
+		
+		return __.iterator(start, function(c) {
+			var reversed = __.reverse(indices);
+			
+			for (var i = 0; i < reversed.length; i++) {
+				if (indices[reversed[i]] != reversed[i] + len - num) {
+					break;
+				}
+			}
+			
+			indices[reversed[i]] += 1;
+			
+			var range = __.range(reversed[i] + 1, num);
+			
+			for (var j = 0; j < range.length; j++) {
+				indices[range[j]] = indices[range[j]-1] + 1;
+			}
+			
+			var result = [];
+		
+			for (var k = 0; k < indices.length; k++) {
+				result.push(iter[indices[k]]);
+			}
+			
+			return result;
+			
+		}, function(c) {
+			var reversed = __.reverse(__.range(0, num));
+			
+			for (var i = 0; i < reversed.length; i++) {
+				if (indices[reversed[i]] != reversed[i] + len - num) {
+					return false;
+				}
+			}
+
+			return true;
+		});
 	};
 	
 	__.compress = function(data, selectors) {
@@ -160,7 +253,7 @@
 		start = start || 0;
 		step = step || 1;
 		
-		return __.iterator(start, function(c) { return c + step;})
+		return __.iterator(start, function(c) { return c + step; })
 	};
 	
 	__.cycle = function(iterable) {
@@ -204,7 +297,25 @@
 	};
 	
 	__.idropwhile = function(predicate, iterable) {
+		var i = 0;
+		var iter = __.iterable(iterable);
 		
+		for (; i < iter.length; i++) {
+			if (!predicate.apply(iter[i])) {
+				break;
+			}
+		}
+		
+		if (i == iter.length) {
+			return __.emptyIterator;
+		}
+		
+		return __.iterator(iter[i], function() {
+			i++;
+			return iter[i];
+		}, function() {
+			return i > iter.length;
+		});
 	};
 	
 	__.groupby = function(iterable, key) {
@@ -278,11 +389,43 @@
 	};
 	
 	__.imap = function() {
-		var predicate = arguments[0];
+		var func = arguments[0];
+		var iterables = Array.prototype.slice.apply(arguments, [1]);
+		var index = 0;
+		var bound = __.smallest(iterables).length;
+
+		var compute = function() {
+			var args = [];
+			
+			for (var i = 0; i < iterables.length; i++) {
+				args.push(iterables[i][index]);
+			}
+			
+			return func.apply(null, args);
+		};
+		
+		return __.iterator(compute(), function() {
+			index++;
+			return compute();
+		}, function() {
+			return index > bound;
+		});
+		
 	}
 	
-	__.islice = function() {
-		
+	__.islice = function(iterable, start, stop, step) {
+		var iter = __.iterable(iterable);
+
+		start = start || 0;
+		stop = stop || iterable.length;
+		step = step || 1;
+
+		return __.iterator(iterable[start], function() {
+			start += step;
+			return iter[start];
+		}, function() {
+			return start >= stop;
+		});
 	};
 	
 	__.izip = function(one, two) {
@@ -303,15 +446,68 @@
 	};
 	
 	__.nth = function(iterable, index, __default) {
-		return (index >= 0 && index < iterable.length) ? iterable[index] : __default;
+		var iter = __.iterable(iterable);
+		return (index >= 0 && index < iter.length) ? iter[index] : __default;
 	}
 	
 	__.permutations = function(iterable, num) {
+		var result = [];
+		var iter = __.iterable(iterable);
+		var length = iter.length; 
 		
+		if (typeof num == 'undefined') {
+			num = length;
+		}
+		
+		var product = __.product(__.range(0, length), num);
+
+		for (var i = 0; i < product.length; i++) {
+			if (__.set(product[i]).length == num) {
+				var x = [];
+				for (var j = 0; j < product[i].length; j++) {
+					x.push(iter[product[i][j]]);
+				}
+				result.push(x);
+			}
+		}
+		
+		return result;
 	};
 	
 	__.product = function() {
+		var caboose = Array.prototype.slice.apply(arguments, [arguments.length-1])[0];
+
+		if (isNaN(caboose)) {
+			var iterables = [];
+
+			for (var i = 0; i < arguments.length; i++) {
+				iterables.push(__.iterable(arguments[i]));
+			}
+		}
+		else {
+			var iterables = [];
+			var args = Array.prototype.slice.apply(arguments, [0, arguments.length-1]);
+			
+			for (var c = 0; c < caboose; c++) {
+				for (var i = 0; i < args.length; i++) {
+					iterables.push(__.iterable(args[i]));
+				}
+			}
+		}
 		
+		var result = [[]];
+		
+		for (var i = 0; i < iterables.length; i++) {
+			var tmp = [];
+			for (var x = 0; x < result.length; x++) {
+				for (var y = 0; y < iterables[i].length; y++) {
+					tmp.push(result[x].concat([iterables[i][y]]));
+				}	
+			}
+			result = tmp;
+		}
+		
+		return result;
 	};
 
 	__.repeat = function(entity, times) {
@@ -413,16 +609,35 @@
 	
 	__.partial = __.curry = function(func) {
 		var args = Array.prototype.slice.apply(arguments, [1]);
-		return function() {
-			func.apply(null, args.concat(Array.prototype.slice.apply(arguments)));
+		
+		var curried = function() {
+			return func.apply(null, args.concat(Array.prototype.slice.apply(arguments)));
 		};
+		
+		curried.func = func; 
+		curried.args = args;
+		
+		return curried;
 	};
 	
 	__.reduce = function (callable, iterable, initializer) {
+		if (typeof initializer == 'undefined') {
+			var sequence = __.iterable(iterable);
+		}
+		else {
+			var sequence = [initializer].concat(__.iterable(iterable));
+		}
 		
-	};
-	
-	__.wraps = function() {
+		var reduced = sequence[0];
 		
+		if (sequence.length == 1) {
+			return reduced;
+		}
+		
+		for (var i = 1; i < sequence.length; i++) {
+			reduced = callable.apply(null, [reduced, sequence[i]])
+		}
+		
+		return reduced;
 	};
 })();
