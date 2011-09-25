@@ -36,7 +36,7 @@
 	__.iterable = function(entity) {
 		//Ensures that an entity is iterable
 		
-		if ((Array.prototype.isArray && Array.prototype.isArray(entitiy)) ||
+		if ((Array.prototype.isArray && Array.prototype.isArray(entity)) ||
 			(Object.prototype.toString.call(entity) == '[object Array]')) {
 				return entity;
 		}
